@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <title>📝 OMR Test System v6.15 - Mobile PWA</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="OMR Test System">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <!-- PWA Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23667eea'/><text x='16' y='22' text-anchor='middle' fill='white' font-size='18' font-family='Arial'>📝</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' fill='%23667eea'/><text x='90' y='120' text-anchor='middle' fill='white' font-size='100' font-family='Arial'>📝</text></svg>">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: env(safe-area-inset-top) 10px env(safe-area-inset-bottom);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            min-height: calc(100vh - 40px);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            opacity: 0.9;
+        }
+
+        /* PWA Install Button */
+        .pwa-install-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .pwa-install-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #6c757d;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab.active {
+            color: #667eea;
+            background: white;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .nav-tab:hover {
+            background: #e9ecef;
+            color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+            min-height: 600px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+                min-height: 100vh;
+            }
+            
+            .nav-tabs {
+                position: sticky;
+                top: 0;
+                z-index: 100;
+            }
+            
+            .tab-content {
+                padding: 20px 15px;
+            }
+            
+            .pwa-install-btn {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin: 10px 0;
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 15px;
+            }
+            
+            .tab-content {
+                padding: 15px 10px;
+            }
+        }
+
+        /* Enhanced Mobile Touch Targets */
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 48px;
+            min-width: 48px;
+            touch-action: manipulation;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        /* Touch-friendly input styles */
+        input, select, textarea {
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            min-height: 48px;
+            touch-action: manipulation;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Option buttons - Mobile Optimized */
+        .option-btn {
+            padding: 20px;
+            margin: 5px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-height: 60px;
+            min-width: 48px;
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            word-wrap: break-word;
+            hyphens: auto;
+        }
+
+        .option-btn:hover, .option-btn.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .options-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        /* Mobile responsive option layout */
+        @media (max-width: 768px) {
+            .options-container {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .option-btn {
+                padding: 18px;
+                font-size: 16px;
+                min-height: 56px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .options-container {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .option-btn {
+                padding: 15px;
+                font-size: 15px;
+                min-height: 52px;
+            }
+        }
+
+        /* Answer status colors - Enhanced for mobile visibility */
+        .answer-correct {
+            background-color: #d4edda !important;
+            border-color: #c3e6cb !important;
+            color: #155724 !important;
+        }
+
+        .answer-wrong {
+            background-color: #f8d7da !important;
+            border-color: #f5c6cb !important;
+            color: #721c24 !important;
+        }
+
+        .answer-skipped {
+            background-color: #fff3cd !important;
+            border-color: #ffeaa7 !important;
+            color: #856404 !important;
+        }
+
+        /* Question analysis grid */
+        .question-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .question-item {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        /* Mobile responsive question grid */
+        @media (max-width: 768px) {
+            .question-grid {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+                gap: 8px;
+            }
+            
+            .question-item {
+                padding: 10px;
+                font-size: 12px;
+                min-height: 50px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .question-grid {
+                grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+                gap: 6px;
+            }
+            
+            .question-item {
+                padding: 8px;
+                font-size: 11px;
+                min-height: 45px;
+            }
+        }
+
+        /* Enhanced mobile animations */
+        @media (prefers-reduced-motion: no-preference) {
+            .tab-content {
+                animation: fadeIn 0.3s ease-in-out;
+            }
+            
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        }
+
+        /* PWA specific styles */
+        .pwa-banner {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .pwa-banner.show {
+            display: block;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        /* Loading spinner */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Enhanced status display */
+        .status-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .status-card h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .question-analysis-item {
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .analysis-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-box {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="pwa-install-btn" onclick="installPWA()">
+                📱 Install App
+            </button>
+            <h1>📝 OMR Test System v6.15</h1>
+            <p>Mobile PWA - All 90 Questions with Color Analysis</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('teacher')">👨‍🏫 Teacher</button>
+            <button class="nav-tab" onclick="showTab('student')">👨‍🎓 Student</button>
+            <button class="nav-tab" onclick="showTab('analytics')">📊 Analytics</button>
+        </div>
+
+        <!-- Teacher Section -->
+        <div id="teacher" class="tab-content active">
+            <h2>Teacher Dashboard</h2>
+            
+            <div class="status-card">
+                <h4>📤 CSV Data Upload</h4>
+                <p>Upload your OMR test data in CSV format to process student results.</p>
+                <div style="margin: 20px 0;">
+                    <input type="file" id="csvFile" accept=".csv" style="margin: 10px 0;">
+                    <button class="btn btn-primary" onclick="processCSV()">
+                        📤 Process CSV Data
+                    </button>
+                </div>
+                <div id="csvPreview"></div>
+            </div>
+
+            <div class="status-card">
+                <h4>🔄 Bulk Operations</h4>
+                <p>Manage multiple tests and student records efficiently.</p>
+                <div style="margin: 20px 0;">
+                    <button class="btn btn-secondary" onclick="showBulkOperations()">
+                        🔄 Bulk Operations
+                    </button>
+                </div>
+            </div>
+
+            <div id="testList"></div>
+        </div>
+
+        <!-- Student Section -->
+        <div id="student" class="tab-content">
+            <h2>Student Dashboard</h2>
+            
+            <div class="status-card">
+                <h4>🔍 Search Student Results</h4>
+                <p>Enter student ID or name to view detailed performance analysis with all 90 questions.</p>
+                <div style="margin: 20px 0;">
+                    <input type="text" id="studentSearch" placeholder="Enter Student ID or Name" 
+                           style="width: 100%; max-width: 300px; margin-bottom: 10px;">
+                    <button class="btn btn-primary" onclick="searchStudent()">
+                        🔍 Search Student
+                    </button>
+                </div>
+            </div>
+
+            <div id="studentResults" style="margin-top: 20px;"></div>
+        </div>
+
+        <!-- Analytics Section -->
+        <div id="analytics" class="tab-content">
+            <h2>Analytics Dashboard</h2>
+            
+            <div class="status-card">
+                <h4>📊 Test Analytics</h4>
+                <p>Comprehensive analytics and reporting for test performance.</p>
+                <div style="margin: 20px 0;">
+                    <select id="analyticsTestSelect" style="margin-right: 10px;">
+                        <option value="">Select Test</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="showTestAnalytics()">
+                        📊 Show Analytics
+                    </button>
+                </div>
+            </div>
+
+            <div id="analyticsContent">
+                <div class="status-card">
+                    <h4>📈 Performance Overview</h4>
+                    <p>Select a test to view detailed analytics including grade distribution, question-wise analysis, and student performance metrics.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA Banner -->
+    <div id="pwaBanner" class="pwa-banner">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+                <strong>📱 Install OMR Test System</strong>
+                <div style="font-size: 0.9rem; opacity: 0.9;">Add to home screen for app-like experience</div>
+            </div>
+            <div>
+                <button class="btn btn-primary" onclick="installPWA()" style="margin-right: 10px;">
+                    Install
+                </button>
+                <button class="btn" onclick="dismissPwaBanner()" style="background: rgba(255,255,255,0.2); color: white;">
+                    ×
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // GitHub Pages optimized configuration
+        const config = {
+            // UPDATE THIS URL AFTER CREATING GOOGLE APPS SCRIPT
+            baseUrl: 'https://script.google.com/macros/s/YOUR_SCRIPT_ID_HERE/exec',
+            version: '6.15',
+            platform: 'github-pages',
+            maxQuestions: 90
+        };
+
+        // PWA Installation functionality
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showPwaBanner();
+        });
+
+        function showPwaBanner() {
+            const banner = document.getElementById('pwaBanner');
+            banner.classList.add('show');
+        }
+
+        function dismissPwaBanner() {
+            const banner = document.getElementById('pwaBanner');
+            banner.classList.remove('show');
+        }
+
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('PWA installed successfully');
+                        showSuccessMessage('App installed successfully! Find it on your home screen.');
+                    }
+                    deferredPrompt = null;
+                    dismissPwaBanner();
+                });
+            } else {
+                // Fallback for browsers that don't support the prompt
+                showInfoMessage('To install: Tap menu (⋮) → "Add to Home screen"');
+            }
+        }
+
+        function showSuccessMessage(message) {
+            const banner = document.createElement('div');
+            banner.className = 'pwa-banner show';
+            banner.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <strong>✅ Success!</strong>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">${message}</div>
+                    </div>
+                    <button class="btn" onclick="this.parentElement.parentElement.remove()" style="background: rgba(255,255,255,0.2); color: white;">
+                        ×
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(banner);
+            setTimeout(() => banner.remove(), 5000);
+        }
+
+        function showInfoMessage(message) {
+            const banner = document.createElement('div');
+            banner.className = 'pwa-banner show';
+            banner.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <strong>ℹ️ Info</strong>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">${message}</div>
+                    </div>
+                    <button class="btn" onclick="this.parentElement.parentElement.remove()" style="background: rgba(255,255,255,0.2); color: white;">
+                        ×
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(banner);
+            setTimeout(() => banner.remove(), 5000);
+        }
+
+        // Tab functionality
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Teacher functions
+        function processCSV() {
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showInfoMessage('Please select a CSV file first');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csvData = e.target.result;
+                uploadCSVData(csvData);
+            };
+            reader.readAsText(file);
+        }
+
+        function uploadCSVData(csvData) {
+            const testID = 'DT' + Date.now();
+            
+            const data = {
+                action: 'uploadCSV',
+                csvData: csvData,
+                testID: testID,
+                teacherID: 'Teacher001'
+            };
+            
+            fetch(config.baseUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showSuccessMessage(`Successfully processed ${result.studentsProcessed} students`);
+                    document.getElementById('csvPreview').innerHTML = `
+                        <div class="status-card">
+                            <h4>✅ Upload Successful</h4>
+                            <p>Test ID: ${testID}</p>
+                            <p>Students processed: ${result.studentsProcessed}</p>
+                        </div>
+                    `;
+                } else {
+                    showInfoMessage('Upload failed: ' + result.message);
+                }
+            })
+            .catch(error => {
+                showInfoMessage('Error uploading CSV: ' + error.message);
+            });
+        }
+
+        function showBulkOperations() {
+            showInfoMessage('Bulk operations functionality will be available after CSV upload');
+        }
+
+        // Student functions
+        function searchStudent() {
+            const searchTerm = document.getElementById('studentSearch').value.trim();
+            
+            if (!searchTerm) {
+                showInfoMessage('Please enter a student ID or name');
+                return;
+            }
+            
+            const data = {
+                action: 'getStudentReport',
+                studentID: searchTerm
+            };
+            
+            fetch(config.baseUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    displayStudentResults(result.data);
+                } else {
+                    showInfoMessage('Student not found: ' + searchTerm);
+                    document.getElementById('studentResults').innerHTML = '';
+                }
+            })
+            .catch(error => {
+                showInfoMessage('Error searching student: ' + error.message);
+            });
+        }
+
+        function displayStudentResults(studentData) {
+            const container = document.getElementById('studentResults');
+            
+            let html = `
+                <div class="status-card">
+                    <h4>👨‍🎓 Student: ${studentData.studentName}</h4>
+                    <p>Student ID: ${studentData.studentID}</p>
+                    <p>Total Tests: ${studentData.totalTests}</p>
+                </div>
+            `;
+            
+            studentData.tests.forEach((test, index) => {
+                html += `
+                    <div class="status-card">
+                        <h4>📊 Test: ${test.testID}</h4>
+                        
+                        <div class="analysis-stats">
+                            <div class="stat-box">
+                                <div class="stat-number">${test.correctAnswers}</div>
+                                <div class="stat-label">Correct</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-number">${test.wrongAnswers}</div>
+                                <div class="stat-label">Wrong</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-number">${test.skippedQuestions}</div>
+                                <div class="stat-label">Skipped</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-number">${test.percentage}%</div>
+                                <div class="stat-label">Score</div>
+                            </div>
+                        </div>
+                        
+                        <h5>📝 Question-wise Analysis (All 90 Questions)</h5>
+                        <div class="question-grid">
+                `;
+                
+                // Display all 90 questions with color coding
+                for (let i = 1; i <= config.maxQuestions; i++) {
+                    const question = test.questionAnalysis.find(q => q.questionNumber === i);
+                    if (question) {
+                        const statusClass = question.status === 'correct' ? 'answer-correct' : 
+                                          question.status === 'wrong' ? 'answer-wrong' : 'answer-skipped';
+                        html += `
+                            <div class="question-item ${statusClass}" title="Q${i}: ${question.studentAnswer} - ${question.status}">
+                                Q${i}<br>
+                                <small>${question.studentAnswer}</small>
+                            </div>
+                        `;
+                    }
+                }
+                
+                html += `
+                        </div>
+                        <p style="margin-top: 15px; font-size: 0.9rem; color: #666;">
+                            <strong>Legend:</strong> 
+                            <span style="background: #d4edda; padding: 2px 8px; border-radius: 4px; margin: 0 5px;">Green = Correct</span>
+                            <span style="background: #f8d7da; padding: 2px 8px; border-radius: 4px; margin: 0 5px;">Red = Wrong</span>
+                            <span style="background: #fff3cd; padding: 2px 8px; border-radius: 4px; margin: 0 5px;">Yellow = Skipped</span>
+                        </p>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Analytics functions
+        function showTestAnalytics() {
+            showInfoMessage('Analytics will be available after uploading test data');
+        }
+
+        // Initialize PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then((registration) => {
+                        console.log('SW registered: ', registration);
+                        console.log('GitHub Pages PWA initialized successfully');
+                    })
+                    .catch((registrationError) => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+
+        // Enhanced mobile touch feedback
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.classList.contains('btn') || e.target.classList.contains('option-btn')) {
+                e.target.style.transform = 'scale(0.98)';
+            }
+        });
+
+        document.addEventListener('touchend', function(e) {
+            if (e.target.classList.contains('btn') || e.target.classList.contains('option-btn')) {
+                setTimeout(() => {
+                    e.target.style.transform = '';
+                }, 150);
+            }
+        });
+
+        // Check if config needs updating
+        if (config.baseUrl.includes('YOUR_SCRIPT_ID_HERE')) {
+            console.warn('⚠️ Please update the Google Apps Script URL in the config');
+            showInfoMessage('Setup required: Please update Google Apps Script URL');
+        }
+
+        console.log('OMR Test System v6.15 GitHub Pages PWA loaded successfully');
+        console.log('Platform: GitHub Pages');
+        console.log('Features: Full PWA support, Mobile-optimized, Touch-friendly');
+    </script>
+</body>
+</html>
